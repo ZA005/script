@@ -24,6 +24,5 @@ task.spawn(function()
 
     -- Teleport to second position
     teleportTo(positions[2])
-    task.wait(2)
 
 end)
