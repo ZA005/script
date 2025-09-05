@@ -5,7 +5,7 @@ local player = Players.LocalPlayer
 
 -- Define teleport positions
 local positions = {
-    Vector3.new(635, 1796, 3426),
+    Vector3.new(625, 1801, 3432.7),
     Vector3.new(785.63, 2180.06, 3946.21),
 }
 
