@@ -1,3 +1,4 @@
+-- Fly GUI + Draggable + Hold Jump Fly + Scrollable Teleport Dropdown + Get Position
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -6,6 +7,9 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
+
+-- Auto-set WalkSpeed
+humanoid.WalkSpeed = 20
 
 -- Fly state
 local flying = false
@@ -44,8 +48,9 @@ screenGui.Name = "FlyGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- Frame (panel)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 220)
+frame.Size = UDim2.new(0, 220, 0, 240)
 frame.Position = UDim2.new(0.05, 0, 0.6, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.2
@@ -62,26 +67,14 @@ toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 toggleBtn.Parent = frame
 
--- WalkSpeed input label
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(0.5, -15, 0, 30)
-speedLabel.Position = UDim2.new(0, 10, 0, 60)
-speedLabel.Text = "WalkSpeed:"
-speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedLabel.BackgroundTransparency = 1
-speedLabel.TextXAlignment = Enum.TextXAlignment.Left
-speedLabel.Parent = frame
-
--- WalkSpeed text box
-local speedInput = Instance.new("TextBox")
-speedInput.Size = UDim2.new(0.5, -15, 0, 30)
-speedInput.Position = UDim2.new(0.5, 5, 0, 60)
-speedInput.PlaceholderText = tostring(humanoid.WalkSpeed)
-speedInput.Text = ""
-speedInput.TextColor3 = Color3.fromRGB(0, 0, 0)
-speedInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-speedInput.ClearTextOnFocus = false
-speedInput.Parent = frame
+-- Get Position button
+local getPosBtn = Instance.new("TextButton")
+getPosBtn.Size = UDim2.new(1, -20, 0, 30)
+getPosBtn.Position = UDim2.new(0, 10, 0, 60)
+getPosBtn.Text = "Get Position"
+getPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+getPosBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+getPosBtn.Parent = frame
 
 -- Teleport dropdown button
 local teleportBtn = Instance.new("TextButton")
@@ -92,9 +85,9 @@ teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 teleportBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 teleportBtn.Parent = frame
 
--- Scrollable dropdown
+-- Scrollable dropdown container
 local dropdownFrame = Instance.new("ScrollingFrame")
-dropdownFrame.Size = UDim2.new(1, -20, 0, 90) -- visible height
+dropdownFrame.Size = UDim2.new(1, -20, 0, 100) -- visible height
 dropdownFrame.Position = UDim2.new(0, 10, 0, 135)
 dropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 dropdownFrame.ScrollBarThickness = 6
@@ -102,12 +95,13 @@ dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, #teleportPositions * 28)
 dropdownFrame.Visible = false
 dropdownFrame.Parent = frame
 
+-- UIListLayout for stacking buttons
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 3)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = dropdownFrame
 
--- teleport buttons
+-- Create teleport buttons
 for i, pos in ipairs(teleportPositions) do
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, -10, 0, 25)
@@ -127,7 +121,7 @@ teleportBtn.MouseButton1Click:Connect(function()
 	dropdownFrame.Visible = not dropdownFrame.Visible
 end)
 
--- Fly
+-- Fly functions
 local function startFlying()
 	if flying then return end
 	flying = true
@@ -158,16 +152,10 @@ toggleBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Speed input handler
-speedInput.FocusLost:Connect(function(enterPressed)
-	if enterPressed then
-		local num = tonumber(speedInput.Text)
-		if num and num > 0 then
-			humanoid.WalkSpeed = num
-		else
-			speedInput.Text = tostring(humanoid.WalkSpeed)
-		end
-	end
+-- Get Position handler
+getPosBtn.MouseButton1Click:Connect(function()
+	local pos = humanoidRootPart.Position
+	print("Current Position: " .. tostring(pos))
 end)
 
 -- Detect jump hold (PC + Mobile)
@@ -185,7 +173,7 @@ UserInputService.InputEnded:Connect(function(input, gp)
 	end
 end)
 
--- Mobile
+-- Mobile jump listener
 local function setupJumpListener()
 	local touchGui = player:WaitForChild("PlayerGui"):WaitForChild("TouchGui", 10)
 	if touchGui then
