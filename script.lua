@@ -26,15 +26,4 @@ task.spawn(function()
     teleportTo(positions[2])
     task.wait(2)
 
-    -- Rejoin same server
-    local success, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(
-            game.PlaceId,
-            game.JobId,
-            player
-        )
-    end)
-    if not success then
-        warn("Rejoin failed:", err)
-    end
 end)
