@@ -39,7 +39,7 @@ local teleportPositions = {
 	Vector3.new(-415, 1712, 3430),
 	Vector3.new(61, 1720, 3424),
 	Vector3.new(635, 1796, 3426),
-	Vector3.new(647.7, 1947.9, 3660), -- Summit
+	Vector3.new(775.67, 2110.66, 3859.44), -- Summit
 }
 
 -- GUI
