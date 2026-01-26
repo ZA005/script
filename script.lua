@@ -27,6 +27,7 @@
 
 -- end)
 --// Services
+--// Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
@@ -105,7 +106,7 @@ Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextScaled = true
 Title.Parent = Frame
 
---// Buttons
+--// Button creator
 local function CreateButton(text, posY)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 160, 0, 35)
@@ -130,11 +131,13 @@ local AutoSellEnabled = false
 local function HarvestLoop()
     while HarvestEnabled do
         local container = Workspace:WaitForChild("Scripted"):WaitForChild("PlantHarvestContainer")
+
         for _, plant in ipairs(container:GetChildren()) do
             if not HarvestEnabled then return end
             PlantServiceRF:InvokeServer(plant.Name)
         end
 
+        -- ✅ AUTO SELL LOGIC (always allowed)
         if AutoSellEnabled then
             ShopServiceRF:InvokeServer()
         end
@@ -157,16 +160,8 @@ HarvestButton.MouseButton1Click:Connect(function()
     end
 end)
 
---// Auto Sell Toggle (REQUIRES harvest OFF)
+--// Auto Sell Toggle (NO restriction)
 AutoSellButton.MouseButton1Click:Connect(function()
-    if HarvestEnabled then
-        AutoSellButton.Text = "TURN HARVEST OFF"
-        task.delay(1.2, function()
-            AutoSellButton.Text = AutoSellEnabled and "AUTO SELL: ON" or "AUTO SELL: OFF"
-        end)
-        return
-    end
-
     AutoSellEnabled = not AutoSellEnabled
 
     if AutoSellEnabled then
