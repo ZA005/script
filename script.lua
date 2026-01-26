@@ -29,8 +29,9 @@
 --// Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -53,79 +54,131 @@ local ShopServiceRF = ReplicatedStorage:WaitForChild("Packages")
     :WaitForChild("RF")
     :WaitForChild("SellAllHarvest")
 
---// GUI Setup
+--// GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoHarvestGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 200, 0, 140)  -- adjusted to fit two buttons
-Frame.Position = UDim2.new(0, 20, 0, 20)
-Frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Frame.Size = UDim2.new(0, 220, 0, 190)
+Frame.Position = UDim2.new(0.05, 0, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Frame.BorderSizePixel = 0
 Frame.Parent = ScreenGui
 
+--// Draggable GUI
+local dragging, dragStart, startPos
+
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+    end
+end)
+
+Frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--// Title
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "Auto-Harvest Toggle"
+Title.Text = "Auto Farm"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextScaled = true
 Title.Parent = Frame
 
---// Toggle Button
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0, 120, 0, 40)
-ToggleButton.Position = UDim2.new(0.5, -60, 0.3, 0) -- higher to fit sell button
-ToggleButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-ToggleButton.Text = "OFF"
-ToggleButton.TextScaled = true
-ToggleButton.Parent = Frame
+--// Buttons
+local function CreateButton(text, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 160, 0, 35)
+    btn.Position = UDim2.new(0.5, -80, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+    btn.Text = text
+    btn.TextScaled = true
+    btn.Parent = Frame
+    return btn
+end
 
---// Sell Button
-local SellButton = Instance.new("TextButton")
-SellButton.Size = UDim2.new(0, 120, 0, 40)
-SellButton.Position = UDim2.new(0.5, -60, 0.7, -10) -- below toggle button
-SellButton.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
-SellButton.Text = "SELL"
-SellButton.TextScaled = true
-SellButton.Parent = Frame
+local HarvestButton = CreateButton("HARVEST: OFF", 40)
+local AutoSellButton = CreateButton("AUTO SELL: OFF", 85)
+local ManualSellButton = CreateButton("SELL NOW", 130)
+ManualSellButton.BackgroundColor3 = Color3.fromRGB(100, 100, 220)
 
---// Toggle state
-local HarvestToggle = false
+--// States
+local HarvestEnabled = false
+local AutoSellEnabled = false
 
-ToggleButton.MouseButton1Click:Connect(function()
-    HarvestToggle = not HarvestToggle
-    if HarvestToggle then
-        ToggleButton.Text = "ON"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 100, 100)
-    else
-        ToggleButton.Text = "OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-    end
-end)
+--// Harvest Loop
+local function HarvestLoop()
+    while HarvestEnabled do
+        local container = Workspace:WaitForChild("Scripted"):WaitForChild("PlantHarvestContainer")
+        for _, plant in ipairs(container:GetChildren()) do
+            if not HarvestEnabled then return end
+            PlantServiceRF:InvokeServer(plant.Name)
+        end
 
---// Harvest Function (no limit)
-local function HarvestAll()
-    local Container = Workspace:WaitForChild("Scripted"):WaitForChild("PlantHarvestContainer")
-    local Plants = Container:GetChildren()
-    
-    for _, PlantData in ipairs(Plants) do
-        local args = { PlantData.Name }
-        PlantServiceRF:InvokeServer(unpack(args))
+        if AutoSellEnabled then
+            ShopServiceRF:InvokeServer()
+        end
+
+        task.wait(0.6)
     end
 end
 
---// Loop to run while toggle is ON
-RunService.Heartbeat:Connect(function()
-    if HarvestToggle then
-        HarvestAll()
-        wait(0.5)  -- small delay to avoid flooding server
+--// Harvest Toggle
+HarvestButton.MouseButton1Click:Connect(function()
+    HarvestEnabled = not HarvestEnabled
+
+    if HarvestEnabled then
+        HarvestButton.Text = "HARVEST: ON"
+        HarvestButton.BackgroundColor3 = Color3.fromRGB(200, 100, 100)
+        task.spawn(HarvestLoop)
+    else
+        HarvestButton.Text = "HARVEST: OFF"
+        HarvestButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
     end
 end)
 
---// Sell Button Function
-SellButton.MouseButton1Click:Connect(function()
+--// Auto Sell Toggle (REQUIRES harvest OFF)
+AutoSellButton.MouseButton1Click:Connect(function()
+    if HarvestEnabled then
+        AutoSellButton.Text = "TURN HARVEST OFF"
+        task.delay(1.2, function()
+            AutoSellButton.Text = AutoSellEnabled and "AUTO SELL: ON" or "AUTO SELL: OFF"
+        end)
+        return
+    end
+
+    AutoSellEnabled = not AutoSellEnabled
+
+    if AutoSellEnabled then
+        AutoSellButton.Text = "AUTO SELL: ON"
+        AutoSellButton.BackgroundColor3 = Color3.fromRGB(200, 100, 100)
+    else
+        AutoSellButton.Text = "AUTO SELL: OFF"
+        AutoSellButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+    end
+end)
+
+--// Manual Sell
+ManualSellButton.MouseButton1Click:Connect(function()
     ShopServiceRF:InvokeServer()
 end)
