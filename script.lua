@@ -1,179 +1,86 @@
--- local Players = game:GetService("Players")
--- local TeleportService = game:GetService("TeleportService")
-
--- local player = Players.LocalPlayer
-
--- -- Define teleport positions
--- local positions = {
---     Vector3.new(625, 1801, 3432.7),
---     Vector3.new(785.63, 2180.06, 3946.21),
--- }
-
--- -- Function to teleport character
--- local function teleportTo(pos)
---     local character = player.Character or player.CharacterAdded:Wait()
---     local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
---     humanoidRootPart.CFrame = CFrame.new(pos)
--- end
-
--- -- Run sequence
--- task.spawn(function()
---     -- Teleport to first position
---     teleportTo(positions[1])
---     task.wait(2)
-
---     -- Teleport to second position
---     teleportTo(positions[2])
-
--- end)
---// Services
---// Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack") 
+local potionLimit = 15
 
---// Remote Functions
-local PlantServiceRF = ReplicatedStorage:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("sleitnick_knit@1.7.0")
-    :WaitForChild("knit")
-    :WaitForChild("Services")
-    :WaitForChild("PlantService")
-    :WaitForChild("RF")
-    :WaitForChild("ClaimHarvest")
+local Knit = ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit
+local ShopService = Knit.Services.ShopService
 
-local ShopServiceRF = ReplicatedStorage:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("sleitnick_knit@1.7.0")
-    :WaitForChild("knit")
-    :WaitForChild("Services")
-    :WaitForChild("ShopService")
-    :WaitForChild("RF")
-    :WaitForChild("SellAllHarvest")
+local TeleportToPlot = ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit.Services.PlotService.RF.TeleportToPlot
+local GetAllCategoryStockRF = ShopService.RF.GetAllCategoryStock
+local BuyItemRF = ShopService.RF.BuyItemFromCurrency
 
---// GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutoHarvestGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = PlayerGui
-
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 220, 0, 190)
-Frame.Position = UDim2.new(0.05, 0, 0.1, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
-
---// Draggable GUI
-local dragging, dragStart, startPos
-
-Frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = Frame.Position
-    end
-end)
-
-Frame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        Frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
---// Title
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundTransparency = 1
-Title.Text = "Auto Farm"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextScaled = true
-Title.Parent = Frame
-
---// Button creator
-local function CreateButton(text, posY)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 160, 0, 35)
-    btn.Position = UDim2.new(0.5, -80, 0, posY)
-    btn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-    btn.Text = text
-    btn.TextScaled = true
-    btn.Parent = Frame
-    return btn
+local function teleportTo(pos)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(pos)
 end
 
-local HarvestButton = CreateButton("HARVEST: OFF", 40)
-local AutoSellButton = CreateButton("AUTO SELL: OFF", 85)
-local ManualSellButton = CreateButton("SELL NOW", 130)
-ManualSellButton.BackgroundColor3 = Color3.fromRGB(100, 100, 220)
+print("LOADED SUCCESSFULLY")
+task.spawn(function()
+    while true do
+        local success, stock = pcall(function()
+            return GetAllCategoryStockRF:InvokeServer()
+        end)
 
---// States
-local HarvestEnabled = false
-local AutoSellEnabled = false
+        if success and stock then
+            -- Loop 1: TimeBoost_Rare
+            for itemName, amount in pairs(stock[3]) do
+                if itemName == "TimeBoost_Rare" and amount > 0 then
 
---// Harvest Loop
-local function HarvestLoop()
-    while HarvestEnabled do
-        local container = Workspace:WaitForChild("Scripted"):WaitForChild("PlantHarvestContainer")
-
-        for _, plant in ipairs(container:GetChildren()) do
-            if not HarvestEnabled then return end
-            PlantServiceRF:InvokeServer(plant.Name)
+                    for i = 1, 4 do
+                        BuyItemRF:InvokeServer(3, "TimeBoost_Rare")
+                        print("[PURCHASED] TimeBoost_Rare")
+                        task.wait(1)
+                    end
+                end
+            end
         end
-
-        -- ✅ AUTO SELL LOGIC (always allowed)
-        if AutoSellEnabled then
-            ShopServiceRF:InvokeServer()
-        end
-
-        task.wait(0.6)
+        task.wait(10) -- Wait 10 seconds before repeating
     end
+end)
+
+while true do 
+	local timePotions = {}
+		for _, item in ipairs(backpack:GetChildren()) do
+			if item:IsA("Tool") and item.Name == "Time Potion" then
+				table.insert(timePotions, item)
+			end
+		end
+
+		-- Total quantity
+		local quantity = #timePotions
+
+		-- Check if quantity meets requirement
+		if quantity >= potionLimit then
+			-- print("You have", quantity, "Time Potions. Invoking server for each one...")
+
+			for _, item in ipairs(timePotions) do
+				local inventoryId = item:GetAttribute("InventoryItemId")
+				if inventoryId then
+					ReplicatedStorage:WaitForChild("Packages")
+						:WaitForChild("_Index")
+						:WaitForChild("sleitnick_knit@1.7.0")
+						:WaitForChild("knit")
+						:WaitForChild("Services")
+						:WaitForChild("EventService")
+						:WaitForChild("RF")
+						:WaitForChild("ContributeToEvent")
+						:InvokeServer(1,inventoryId)
+
+					print("Activeted InventoryId:", inventoryId)
+				else
+					warn(item.Name, "is missing InventoryItemId")
+				end
+
+				-- Wait 62 seconds before next item
+				task.wait(1)
+			end
+		else
+			-- print("Not enough Time Potions. You have", quantity, "but need", potionLimit)
+		end
+	task.wait(15)
 end
-
---// Harvest Toggle
-HarvestButton.MouseButton1Click:Connect(function()
-    HarvestEnabled = not HarvestEnabled
-
-    if HarvestEnabled then
-        HarvestButton.Text = "HARVEST: ON"
-        HarvestButton.BackgroundColor3 = Color3.fromRGB(200, 100, 100)
-        task.spawn(HarvestLoop)
-    else
-        HarvestButton.Text = "HARVEST: OFF"
-        HarvestButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-    end
-end)
-
---// Auto Sell Toggle (NO restriction)
-AutoSellButton.MouseButton1Click:Connect(function()
-    AutoSellEnabled = not AutoSellEnabled
-
-    if AutoSellEnabled then
-        AutoSellButton.Text = "AUTO SELL: ON"
-        AutoSellButton.BackgroundColor3 = Color3.fromRGB(200, 100, 100)
-    else
-        AutoSellButton.Text = "AUTO SELL: OFF"
-        AutoSellButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-    end
-end)
-
---// Manual Sell
-ManualSellButton.MouseButton1Click:Connect(function()
-    ShopServiceRF:InvokeServer()
-end)
