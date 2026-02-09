@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack") 
-local potionLimit = 15
+local potionLimit = 1
 
 local Knit = ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit
 local ShopService = Knit.Services.ShopService
@@ -12,6 +12,10 @@ local ShopService = Knit.Services.ShopService
 local TeleportToPlot = ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit.Services.PlotService.RF.TeleportToPlot
 local GetAllCategoryStockRF = ShopService.RF.GetAllCategoryStock
 local BuyItemRF = ShopService.RF.BuyItemFromCurrency
+
+local EventService = Knit.Services.EventService
+local ContributeRF = EventService.RF.ContributeToEvent
+local GetTimeRemainingRF = EventService.RF.GetTimeRemaining
 
 local function teleportTo(pos)
     local character = player.Character or player.CharacterAdded:Wait()
@@ -43,8 +47,16 @@ task.spawn(function()
     end
 end)
 
-while true do 
-	local timePotions = {}
+while true do  
+
+	-- Get remaining event time
+	local timeRemaining = GetTimeRemainingRF:InvokeServer()
+
+	-- Only run if time is 0
+	if timeRemaining == 0 then
+
+		local timePotions = {}
+
 		for _, item in ipairs(backpack:GetChildren()) do
 			if item:IsA("Tool") and item.Name == "Time Potion" then
 				table.insert(timePotions, item)
@@ -56,31 +68,27 @@ while true do
 
 		-- Check if quantity meets requirement
 		if quantity >= potionLimit then
-			-- print("You have", quantity, "Time Potions. Invoking server for each one...")
 
 			for _, item in ipairs(timePotions) do
-				local inventoryId = item:GetAttribute("InventoryItemId")
-				if inventoryId then
-					ReplicatedStorage:WaitForChild("Packages")
-						:WaitForChild("_Index")
-						:WaitForChild("sleitnick_knit@1.7.0")
-						:WaitForChild("knit")
-						:WaitForChild("Services")
-						:WaitForChild("EventService")
-						:WaitForChild("RF")
-						:WaitForChild("ContributeToEvent")
-						:InvokeServer(1,inventoryId)
 
-					print("Activeted InventoryId:", inventoryId)
+				local inventoryId = item:GetAttribute("InventoryItemId")
+
+				if inventoryId then
+
+					ContributeRF:InvokeServer(1, inventoryId)
+
+					print("Activated InventoryId:", inventoryId)
+
 				else
 					warn(item.Name, "is missing InventoryItemId")
 				end
 
-				-- Wait 62 seconds before next item
+				-- Wait before next item
 				task.wait(1)
 			end
-		else
-			-- print("Not enough Time Potions. You have", quantity, "but need", potionLimit)
 		end
+	end
+
+	-- Loop delay
 	task.wait(15)
 end
