@@ -99,32 +99,44 @@ task.spawn(function()
 
             -- Loop 2: Tiles
             for itemName, amount in pairs(stock[1]) do
-                if itemName == "Valentine_Tile" and amount > 0 then
-                    teleportTo(positions[2])
-                    for i = 1, 3 do
-                        BuyItemRF:InvokeServer(1, "Valentine_Tile")
-                        print("[PURCHASED] Valentine_Tile")
-                        task.wait(1)
-                    end
-                    -- TeleportToPlot:InvokeServer()
-				elseif itemName == "Bush_Tile" and amount > 0 then
-                    teleportTo(positions[2])
-                    for i = 1, 3 do
-                        BuyItemRF:InvokeServer(1, "Bush_Tile")
-                        print("[PURCHASED] Bush_Tile")
-                        task.wait(1)
-                    end
-                end
 
-				elseif itemName == "Moss" or itemName == "Meadow" or itemName == "Enchanted_Grass" or itemName == "Terra_Preta_Soil" or itemName == "Rare_Soil" or itemName == "Fresh_Grass" and amount > 0 then
-                    teleportTo(positions[2])
-                    for i = 1, 3 do
-                        BuyItemRF:InvokeServer(1, "Bush_Tile")
-                        print("[PURCHASED] Bush_Tile")
-                        task.wait(1)
-                    end
-                end
-            end
+			    if itemName == "Valentine_Tile" and amount > 0 then
+			        teleportTo(positions[2])
+			
+			        for i = 1, 3 do
+			            BuyItemRF:InvokeServer(1, "Valentine_Tile")
+			            print("[PURCHASED] Valentine_Tile")
+			            task.wait(1)
+			        end
+			
+			    elseif itemName == "Bush_Tile" and amount > 0 then
+			        teleportTo(positions[2])
+			
+			        for i = 1, 3 do
+			            BuyItemRF:InvokeServer(1, "Bush_Tile")
+			            print("[PURCHASED] Bush_Tile")
+			            task.wait(1)
+			        end
+			
+			    elseif (
+			        itemName == "Moss"
+			        or itemName == "Meadow"
+			        or itemName == "Enchanted_Grass"
+			        or itemName == "Terra_Preta_Soil"
+			        or itemName == "Rare_Soil"
+			        or itemName == "Fresh_Grass"
+			    ) and amount > 0 then
+			
+			        teleportTo(positions[2])
+			
+			        for i = 1, 3 do
+			            BuyItemRF:InvokeServer(1, "Bush_Tile")
+			            print("[PURCHASED] Bush_Tile")
+			            task.wait(1)
+			        end
+			
+			    end
+			end
         end
         -- print("[LOOP REFRESH]")
         task.wait(10) -- Wait 10 seconds before repeating
