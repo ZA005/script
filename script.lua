@@ -131,6 +131,11 @@ task.spawn(function()
 			
 			        for i = 1, 3 do
 			            BuyItemRF:InvokeServer(1, "Bush_Tile")
+						BuyItemRF:InvokeServer(1, "Enchanted_Grass")
+						BuyItemRF:InvokeServer(1, "Terra_Preta_Soil")
+						BuyItemRF:InvokeServer(1, "Rare_Soil")
+						BuyItemRF:InvokeServer(1, "Meadow")
+						BuyItemRF:InvokeServer(1, "Fresh_Grass")
 			            print("[PURCHASED] Bush_Tile")
 			            task.wait(1)
 			        end
