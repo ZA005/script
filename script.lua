@@ -7,8 +7,10 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
-local backpack = player:WaitForChild("Backpack") 
+local backpack = player:WaitForChild("Backpack")
+
 local potionLimit = 1
+
 
 --// =========================
 --// KNIT
@@ -16,185 +18,191 @@ local potionLimit = 1
 
 local Knit = ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit
 local ShopService = Knit.Services.ShopService
+local EventService = Knit.Services.EventService
 
 local TeleportToShop = ShopService.RF.TeleportToShop
-local TeleportToPlot = ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit.Services.PlotService.RF.TeleportToPlot
+local TeleportToPlot = Knit.Services.PlotService.RF.TeleportToPlot
+
 local GetAllCategoryStockRF = ShopService.RF.GetAllCategoryStock
 local BuyItemRF = ShopService.RF.BuyItemFromCurrency
 
---// =========================
---// EVENT
---// =========================
-local EventService = Knit.Services.EventService
 local ContributeRF = EventService.RF.ContributeToEvent
 local GetTimeRemainingRF = EventService.RF.GetTimeRemaining
 
 
 --// =========================
---// Coordinates
+--// POSITIONS
 --// =========================
 
-local positions = {
-    Vector3.new(-395.85, 14.22, 177.90),
-    Vector3.new(-389.90, 14.22, 25.10),
+local Positions = {
+	Shop1 = Vector3.new(-395.85, 14.22, 177.90),
+	Shop2 = Vector3.new(-389.90, 14.22, 25.10),
 }
 
-local function teleportTo(pos)
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(pos)
-end
 
 --// =========================
---// Main Loop
+--// TELEPORT
+--// =========================
+
+local function TeleportTo(position)
+	local character = player.Character or player.CharacterAdded:Wait()
+	local root = character:WaitForChild("HumanoidRootPart")
+
+	root.CFrame = CFrame.new(position)
+end
+
+
+--// =========================
+--// SAFE SERVER INVOKE
+--// =========================
+
+local function SafeInvoke(remote, ...)
+	local success, result = pcall(function()
+		return remote:InvokeServer(...)
+	end)
+
+	if success then
+		return result
+	end
+
+	warn("Remote invoke failed:", remote.Name)
+	return nil
+end
+
+
+--// =========================
+--// BUY HANDLER
+--// =========================
+
+local function TryBuy(stockTable, categoryId, itemName, position, amount, printName)
+
+	if not stockTable then return end
+
+	for name, count in pairs(stockTable) do
+
+		if name == itemName and count > 0 then
+
+			TeleportTo(position)
+
+			for i = 1, amount do
+				BuyItemRF:InvokeServer(categoryId, itemName)
+				print("[PURCHASED]", printName or itemName)
+				task.wait(1)
+			end
+
+			break
+		end
+	end
+end
+
+
+--// =========================
+--// MAIN SHOP LOOP
 --// =========================
 
 task.spawn(function()
-    while true do
-        local success, stock = pcall(function()
-            return GetAllCategoryStockRF:InvokeServer()
-        end)
 
-        if success and stock then
-            -- Loop 1: TimeBoost_Rare
-            for itemName, amount in pairs(stock[3]) do
-                if itemName == "TimeBoost_Rare" and amount > 0 then
-                    teleportTo(positions[1])
+	while true do
 
-                    for i = 1, 4 do
-                        BuyItemRF:InvokeServer(3, "TimeBoost_Rare")
-                        print("[PURCHASED] TimeBoost_Rare")
-                        task.wait(1)
-                    end
+		local stock = SafeInvoke(GetAllCategoryStockRF)
 
-                    -- TeleportToPlot:InvokeServer()
-                end
+		if stock then
 
-                -- if itemName == "CloudBoost_Legendary" and amount > 0 then
-                --     teleportTo(positions[1])
+			-- TimeBoost_Rare (Category 3)
+			TryBuy(
+				stock[3],
+				3,
+				"TimeBoost_Rare",
+				Positions.Shop1,
+				4,
+				"TimeBoost_Rare"
+			)
 
-                --     for i = 1, 4 do
-                --         BuyItemRF:InvokeServer(3, "CloudBoost_Legendary")
-                --         print("[PURCHASED] CloudBoost_Legendary")
-                --         task.wait(1)
-                --     end
 
-                --     -- TeleportToPlot:InvokeServer()
-                -- end
-            end
-			
-            for itemName, amount in pairs(stock[2]) do
-                if itemName == "Palm_Tree" and amount > 0 then
-                    teleportTo(positions[2])
+			-- Toadstool Tree (Category 2)
+			TryBuy(
+				stock[2],
+				2,
+				"Toadstool_Tree",
+				Positions.Shop2,
+				4,
+				"Illustrious_Tree"
+			)
 
-                    for i = 1, 4 do
-                        BuyItemRF:InvokeServer(2, "Palm_Tree")
-                        print("[PURCHASED] Palm_Tree")
-                        task.wait(1)
-                    end
 
-                    -- TeleportToPlot:InvokeServer()
-                end
-            end
+			-- Bush Tile (Category 1)
+			TryBuy(
+				stock[1],
+				1,
+				"Bush_Tile",
+				Positions.Shop2,
+				3,
+				"Bush_Tile"
+			)
 
-            -- Loop 2: Tiles
-            for itemName, amount in pairs(stock[1]) do
+		end
 
-			    if itemName == "Valentine_Tile" and amount > 0 then
-			        teleportTo(positions[2])
-			
-			        for i = 1, 3 do
-			            BuyItemRF:InvokeServer(1, "Valentine_Tile")
-			            print("[PURCHASED] Valentine_Tile")
-			            task.wait(1)
-			        end
-			
-			    elseif itemName == "Bush_Tile" and amount > 0 then
-			        teleportTo(positions[2])
-			
-			        for i = 1, 3 do
-			            BuyItemRF:InvokeServer(1, "Bush_Tile")
-			            print("[PURCHASED] Bush_Tile")
-			            task.wait(1)
-			        end
-			
-			    elseif (
-			        itemName == "Moss"
-			        or itemName == "Meadow"
-			        or itemName == "Enchanted_Grass"
-			        or itemName == "Terra_Preta_Soil"
-			        or itemName == "Rare_Soil"
-			        or itemName == "Fresh_Grass"
-			    ) and amount > 0 then
-			
-			        teleportTo(positions[2])
-			
-			        for i = 1, 3 do
-			            BuyItemRF:InvokeServer(1, "Moss")
-						BuyItemRF:InvokeServer(1, "Enchanted_Grass")
-						BuyItemRF:InvokeServer(1, "Terra_Preta_Soil")
-						BuyItemRF:InvokeServer(1, "Rare_Soil")
-						BuyItemRF:InvokeServer(1, "Meadow")
-						BuyItemRF:InvokeServer(1, "Fresh_Grass")
-			            task.wait(1)
-			        end
-			
-			    end
-			end
-        end
-        -- print("[LOOP REFRESH]")
-        task.wait(10) -- Wait 10 seconds before repeating
-    end
+		task.wait(10)
+	end
 end)
 
 
 --// =========================
---// AUTO-CONTRIBUTE SURGE
+--// AUTO-CONTRIBUTE SYSTEM
 --// =========================
 
--- Gather all Time Potions in backpack
-while true do  
+local function GetTimePotions()
 
-	-- Get remaining event time
-	local timeRemaining = GetTimeRemainingRF:InvokeServer()
+	local potions = {}
 
-	-- Only run if time is 0
-	if timeRemaining == 0 then
+	for _, item in ipairs(backpack:GetChildren()) do
 
-		local timePotions = {}
-
-		for _, item in ipairs(backpack:GetChildren()) do
-			if item:IsA("Tool") and item.Name == "Time Potion" then
-				table.insert(timePotions, item)
-			end
+		if item:IsA("Tool") and item.Name == "Time Potion" then
+			table.insert(potions, item)
 		end
 
-		-- Total quantity
-		local quantity = #timePotions
+	end
 
-		-- Check if quantity meets requirement
-		if quantity >= potionLimit then
+	return potions
+end
 
-			for _, item in ipairs(timePotions) do
 
-				local inventoryId = item:GetAttribute("InventoryItemId")
+local function ContributePotions(potions)
 
-				if inventoryId then
+	for _, item in ipairs(potions) do
 
-					ContributeRF:InvokeServer(1, inventoryId)
+		local inventoryId = item:GetAttribute("InventoryItemId")
 
-					print("Activated InventoryId:", inventoryId)
+		if inventoryId then
 
-				else
-					warn(item.Name, "is missing InventoryItemId")
-				end
+			ContributeRF:InvokeServer(1, inventoryId)
+			print("Activated InventoryId:", inventoryId)
 
-				-- Wait before next item
-				task.wait(1)
-			end
+		else
+			warn(item.Name, "missing InventoryItemId")
+		end
+
+		task.wait(1)
+	end
+end
+
+
+--// =========================
+--// AUTO-CONTRIBUTE LOOP
+--// =========================
+
+while true do
+
+	local timeRemaining = SafeInvoke(GetTimeRemainingRF)
+
+	if timeRemaining == 0 then
+
+		local potions = GetTimePotions()
+
+		if #potions >= potionLimit then
+			ContributePotions(potions)
 		end
 	end
 
-	-- Loop delay
 	task.wait(15)
 end
